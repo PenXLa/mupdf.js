@@ -1,3 +1,4 @@
 [submodule "libmupdf"]
 	path = libmupdf
-	url = https://github.com/ArtifexSoftware/mupdf
+	url = https://github.com/PenXLa/mupdf.git
+	branch = svg_support_in_browser
