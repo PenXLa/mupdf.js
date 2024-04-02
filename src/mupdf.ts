@@ -3415,3 +3415,9 @@ export class Stream extends Userdata {
 		super(libmupdf._wasm_open_stream_from_url(STRING(url), contentLength, block_size, prefetch))
 	}
 }
+
+export function trimPdfPage(doc: PDFDocument, page: PDFPage, x0: number, y0: number, x1: number, y1: number) {
+	// checkType(doc, PDFDocument)
+	// checkType(page, PDFPage)
+	libmupdf._wasm_trim_pdf_page(doc.pointer, page.pointer, x0, y0, x1, y1)
+}

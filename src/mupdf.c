@@ -2246,3 +2246,63 @@ fz_stream *wasm_open_stream_from_url(char *url, int content_length, int block_si
 	}
 	return stream;
 }
+
+// ===== trim pdf =====
+typedef struct
+{
+	fz_rect cullbox;
+	int exclude;
+} culler_data_t;
+
+static int
+culler(fz_context *ctx, void *opaque, fz_rect r, fz_cull_type type)
+{
+	culler_data_t *cd = (culler_data_t *)opaque;
+
+	r = fz_intersect_rect(r, cd->cullbox);
+	if (cd->exclude)
+	{
+		if (!fz_is_empty_rect(r))
+			return 1;
+	}
+	else
+	{
+		if (fz_is_empty_rect(r))
+			return 1;
+	}
+
+	return 0;
+}
+
+EXPORT
+void wasm_trim_pdf_page(pdf_document* doc, pdf_page* page, float x0, float y0, float x1, float y1)
+{
+	pdf_filter_options options = { 0 };
+	pdf_filter_factory list[2] = { 0 };
+	pdf_sanitize_filter_options sopts = { 0 };
+	pdf_annot *annot;
+	culler_data_t cd;
+
+	cd.exclude = 0;
+	sopts.opaque = &cd;
+	sopts.culler = culler;
+	options.filters = list;
+	options.recurse = 1;
+	list[0].filter = pdf_new_sanitize_filter;
+	list[0].options = &sopts;
+
+	fz_try(ctx)
+	{
+		cd.cullbox.x0 = x0;
+		cd.cullbox.y0 = y0;
+		cd.cullbox.x1 = x1;
+		cd.cullbox.y1 = y1;
+
+		pdf_filter_page_contents(ctx, doc, page, &options);
+
+		for (annot = pdf_first_annot(ctx, page); annot != NULL; annot = pdf_next_annot(ctx, annot))
+			pdf_filter_annot_contents(ctx, doc, annot, &options);
+	}
+	fz_catch(ctx)
+		fz_rethrow(ctx);
+}
